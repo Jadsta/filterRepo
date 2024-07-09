@@ -11,6 +11,9 @@ replace_df = pd.read_excel("replace.xlsx")
 # Create a log file to record replacements
 log_file = open("replacements_log.txt", "w")
 
+# Output folder for modified files
+output_folder = "/path/to/output/folder"
+
 # Iterate through all Excel files in the folder
 for filename in os.listdir(folder_path):
     if filename.endswith(".xlsx"):
@@ -29,17 +32,18 @@ for filename in os.listdir(folder_path):
                 replace_word = row.iloc[1]  # Second column
 
                 for col in modified_df.columns:
-                    modified_df[col] = modified_df[col].apply(lambda cell: re.sub(r'\b' + find_word + r'\b', replace_word, str(cell)) if pd.notna(cell) else cell)
+                    modified_df[col] = modified_df[col].apply(lambda cell: re.sub(r'\b' + find_word + r'\b', replace_word, str(cell), flags=re.IGNORECASE) if pd.notna(cell) else cell)
 
             modified_dfs[sheet_name] = modified_df
 
-        # Save the modified DataFrames back to the same file
-        with pd.ExcelWriter(file_path) as writer:
+        # Save the modified DataFrames to a new file in the output folder
+        output_file_path = os.path.join(output_folder, f"modified_{filename}")
+        with pd.ExcelWriter(output_file_path) as writer:
             for sheet_name, modified_df in modified_dfs.items():
                 modified_df.to_excel(writer, sheet_name=sheet_name, index=False)
 
         # Log the replacements
-        log_file.write(f"File: {filename}, Replacements: {sum(modified_df.apply(lambda col: col.str.count(replace_word).sum()).sum() for modified_df in modified_dfs.values())}\n")
+        log_file.write(f"File: {filename}, Replacements: {sum(modified_df.apply(lambda col: col.str.count(replace_word, flags=re.IGNORECASE).sum()).sum() for modified_df in modified_dfs.values())}\n")
 
 log_file.close()
-print("Find-and-replace completed for all Excel files. Modified files saved with 'modified_' prefix.")
+print("Find-and-replace completed for all Excel files. Modified files saved with 'modified_' prefix in the specified output folder.")
