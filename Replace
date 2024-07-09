@@ -15,10 +15,10 @@ log_file = open("replacements_log.txt", "w")
 for filename in os.listdir(folder_path):
     if filename.endswith(".xlsx"):
         file_path = os.path.join(folder_path, filename)
-        df = pd.read_excel(file_path)
+        original_df = pd.read_excel(file_path)  # Read the original data
 
-        # Initialize a counter for replacements
-        replacements_count = 0
+        # Create a new DataFrame for modifications
+        modified_df = original_df.copy()
 
         # Perform find-and-replace within sentences
         for index, row in replace_df.iterrows():
@@ -26,17 +26,14 @@ for filename in os.listdir(folder_path):
             replace_word = row.iloc[1]  # Second column
 
             # Iterate through each cell in the DataFrame
-            for col in df.columns:
-                df[col] = df[col].apply(lambda cell: re.sub(r'\b' + find_word + r'\b', replace_word, str(cell)) if pd.notna(cell) else cell)
+            for col in modified_df.columns:
+                modified_df[col] = modified_df[col].apply(lambda cell: re.sub(r'\b' + find_word + r'\b', replace_word, str(cell)) if pd.notna(cell) else cell)
 
-            # Update the replacements count
-            replacements_count += df.apply(lambda col: col.str.count(replace_word).sum()).sum()
-
-        # Save the modified DataFrame back to the same file
-        df.to_excel(file_path, index=False)
+        # Save the modified DataFrame to a new file
+        modified_df.to_excel(f"modified_{filename}", index=False)
 
         # Log the replacements
-        log_file.write(f"File: {filename}, Replacements: {replacements_count}\n")
+        log_file.write(f"File: {filename}, Replacements: {modified_df.apply(lambda col: col.str.count(replace_word).sum()).sum()}\n")
 
 log_file.close()
-print("Find-and-replace completed for all Excel files in the folder. Log saved in 'replacements_log.txt'.")
+print("Find-and-replace completed for all Excel files. Modified files saved with 'modified_' prefix.")
