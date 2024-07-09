@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+import re
 
 # Path to the folder containing Excel files
 folder_path = "/path/to/your/folder"
@@ -19,17 +20,17 @@ for filename in os.listdir(folder_path):
         # Initialize a counter for replacements
         replacements_count = 0
 
-        # Perform find-and-replace based on the first and second columns
+        # Perform find-and-replace within sentences
         for index, row in replace_df.iterrows():
             find_word = row.iloc[0]  # First column
             replace_word = row.iloc[1]  # Second column
 
-            # Skip the first row (header) during replacement
-            replacements = df.iloc[1:].replace(find_word, replace_word, inplace=True)
+            # Iterate through each cell in the DataFrame
+            for col in df.columns:
+                df[col] = df[col].apply(lambda cell: re.sub(r'\b' + find_word + r'\b', replace_word, str(cell)))
 
             # Update the replacements count
-            if replacements is not None:
-                replacements_count += replacements.sum().sum()
+            replacements_count += df.apply(lambda col: col.str.count(replace_word).sum()).sum()
 
         # Save the modified DataFrame back to the same file
         df.to_excel(file_path, index=False)
