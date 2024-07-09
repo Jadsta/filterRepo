@@ -1,9 +1,10 @@
 import os
 import pandas as pd
 import re
+from openpyxl import load_workbook
 
 # Path to the folder containing Excel files
-folder_path = "/path/to/your/folder"
+input_path = "./toreplace/"
 
 # Read the replacement data from "replace.xlsx"
 replace_df = pd.read_excel("replace.xlsx")
@@ -12,12 +13,12 @@ replace_df = pd.read_excel("replace.xlsx")
 log_file = open("replacements_log.txt", "w")
 
 # Output folder for modified files
-output_folder = "/path/to/output/folder"
+output_folder = "./cleansed/"
 
-# Iterate through all Excel files in the folder
-for filename in os.listdir(folder_path):
+# Iterate through all Excel files in the input folder
+for filename in os.listdir(input_path):
     if filename.endswith(".xlsx"):
-        file_path = os.path.join(folder_path, filename)
+        file_path = os.path.join(input_path, filename)
         original_df = pd.read_excel(file_path, sheet_name=None)  # Read all sheets
 
         # Create a dictionary to store modified DataFrames for each sheet
@@ -38,9 +39,20 @@ for filename in os.listdir(folder_path):
 
         # Save the modified DataFrames to a new file in the output folder
         output_file_path = os.path.join(output_folder, f"modified_{filename}")
-        with pd.ExcelWriter(output_file_path) as writer:
+        with pd.ExcelWriter(output_file_path, engine="openpyxl") as writer:
             for sheet_name, modified_df in modified_dfs.items():
                 modified_df.to_excel(writer, sheet_name=sheet_name, index=False)
+
+                # Copy formatting from the original sheet to the modified sheet
+                workbook = writer.book
+                original_sheet = workbook.get_sheet_by_name(sheet_name)
+                modified_sheet = writer.sheets[sheet_name]
+                for row in original_sheet.iter_rows():
+                    for cell in row:
+                        modified_sheet[cell.coordinate].font = cell.font
+                        modified_sheet[cell.coordinate].fill = cell.fill
+                        modified_sheet[cell.coordinate].border = cell.border
+                        modified_sheet[cell.coordinate].alignment = cell.alignment
 
         # Log the replacements
         log_file.write(f"File: {filename}, Replacements: {sum(modified_df.apply(lambda col: col.str.count(replace_word, flags=re.IGNORECASE).sum()).sum() for modified_df in modified_dfs.values())}\n")
