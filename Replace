@@ -14,7 +14,7 @@ replace_df = pd.read_excel("replace.xlsx")
 log_file = open("replacements_log.txt", "w")
 
 # Output folder for modified files
-output_folder = "/cleansed/"
+output_folder = "./cleansed/"  # Updated path
 
 # Create a named style for preserving formatting
 named_style = NamedStyle(name="copied_style")
@@ -37,7 +37,8 @@ for filename in os.listdir(input_path):
                 replace_word = row.iloc[1]  # Second column
 
                 for col in modified_df.columns:
-                    modified_df[col] = modified_df[col].apply(lambda cell: re.sub(r'\b' + find_word + r'\b', replace_word, str(cell), flags=re.IGNORECASE) if pd.notna(cell) else cell)
+                    # Fix the AttributeError by checking if the cell value is a string
+                    modified_df[col] = modified_df[col].apply(lambda cell: re.sub(r'\b' + find_word + r'\b', replace_word, str(cell), flags=re.IGNORECASE) if isinstance(cell, str) else cell)
 
             modified_dfs[sheet_name] = modified_df
 
