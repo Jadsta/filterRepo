@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import re
 from openpyxl import load_workbook
+from datetime import datetime
 
 # Path to the folder containing Excel files
 input_path = "./toreplace/"
@@ -19,6 +20,9 @@ log_file = open("replacements_log.txt", "w")
 for filename in os.listdir(input_path):
     if filename.endswith(".xlsx"):
         file_path = os.path.join(input_path, filename)
+        
+        # Print filename and timestamp when starting processing
+        print(f"Processing file: {filename} ({datetime.now()})")
         
         # Load workbook and all sheet names
         workbook = load_workbook(file_path)
@@ -41,6 +45,9 @@ for filename in os.listdir(input_path):
 
         # Log the replacements (this part will need to be adjusted as we're not using pandas here)
         # log_file.write(f"File: {filename}, Replacements: {replacement_count}\n")
+
+        # Print completion message
+        print(f"Processing completed for file: {filename} ({datetime.now()})")
 
 log_file.close()
 print("Find-and-replace completed for all Excel files. Modified files saved with 'modified_' prefix in the specified output folder.")
