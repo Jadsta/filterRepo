@@ -23,7 +23,9 @@ for filename in os.listdir(folder_path):
         for index, row in replace_df.iterrows():
             find_word = row.iloc[0]  # First column
             replace_word = row.iloc[1]  # Second column
-            replacements = df.replace(find_word, replace_word, inplace=True)
+
+            # Skip the first row (header) during replacement
+            replacements = df.iloc[1:].replace(find_word, replace_word, inplace=True)
 
             # Update the replacements count
             if replacements is not None:
