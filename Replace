@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import re
 from openpyxl import load_workbook
+from openpyxl.styles import NamedStyle
 
 # Path to the folder containing Excel files
 input_path = "./toreplace/"
@@ -13,7 +14,10 @@ replace_df = pd.read_excel("replace.xlsx")
 log_file = open("replacements_log.txt", "w")
 
 # Output folder for modified files
-output_folder = "./cleansed/"
+output_folder = "/cleansed/"
+
+# Create a named style for preserving formatting
+named_style = NamedStyle(name="copied_style")
 
 # Iterate through all Excel files in the input folder
 for filename in os.listdir(input_path):
@@ -47,12 +51,11 @@ for filename in os.listdir(input_path):
                 workbook = writer.book
                 original_sheet = workbook.get_sheet_by_name(sheet_name)
                 modified_sheet = writer.sheets[sheet_name]
+
+                # Apply the named style to all cells in the modified sheet
                 for row in original_sheet.iter_rows():
                     for cell in row:
-                        modified_sheet[cell.coordinate].font = cell.font
-                        modified_sheet[cell.coordinate].fill = cell.fill
-                        modified_sheet[cell.coordinate].border = cell.border
-                        modified_sheet[cell.coordinate].alignment = cell.alignment
+                        modified_sheet[cell.coordinate].style = named_style
 
         # Log the replacements
         log_file.write(f"File: {filename}, Replacements: {sum(modified_df.apply(lambda col: col.str.count(replace_word, flags=re.IGNORECASE).sum()).sum() for modified_df in modified_dfs.values())}\n")
