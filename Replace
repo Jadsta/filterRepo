@@ -27,7 +27,7 @@ for filename in os.listdir(folder_path):
 
             # Iterate through each cell in the DataFrame
             for col in df.columns:
-                df[col] = df[col].apply(lambda cell: re.sub(r'\b' + find_word + r'\b', replace_word, str(cell)))
+                df[col] = df[col].apply(lambda cell: re.sub(r'\b' + find_word + r'\b', replace_word, str(cell)) if pd.notna(cell) else cell)
 
             # Update the replacements count
             replacements_count += df.apply(lambda col: col.str.count(replace_word).sum()).sum()
