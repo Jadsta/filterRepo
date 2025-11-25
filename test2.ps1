@@ -50,15 +50,12 @@ foreach ($env in $envOrder) {
     $tasks = $data | Where-Object { $_["env"] -eq $env }
 
     foreach ($task in $tasks) {
-        $first = $true
+        $firstKey = $headers | Where-Object { $_ -ne "env" } | Select-Object -First 1
+        $yamlLines += "  - " + $firstKey + ": " + $task[$firstKey]
+
         foreach ($key in $headers) {
-            if ($key -ne "env") {
-                if ($first) {
-                    $yamlLines += "  - " + $key + ": " + $task[$key]
-                    $first = $false
-                } else {
-                    $yamlLines += "    " + $key + ": " + $task[$key]
-                }
+            if ($key -ne "env" -and $key -ne $firstKey) {
+                $yamlLines += "    " + $key + ": " + $task[$key]
             }
         }
     }
