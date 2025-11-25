@@ -1,8 +1,15 @@
-$yamlPath = "C:\path\to\your\file.yml"
-$lines = Get-Content $yamlPath
+# Get the directory of the running script
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
 
+# Paths relative to script location
+$yamlPath = Join-Path $scriptDir "input.yml"
+$outputPath = Join-Path $scriptDir "output.xlsx"
+
+# Read YAML lines
+$lines = Get-Content $yamlPath
 $tasks = @()
 $currentEnv = ""
+$task = $null
 
 foreach ($line in $lines) {
     $trimmed = $line.Trim()
@@ -17,24 +24,37 @@ foreach ($line in $lines) {
     }
 
     # Detect start of a new task
-    if ($trimmed -match "^- taskName:\s*(.+)$") {
-        $task = [ordered]@{}
+    if ($trimmed -match "^- (\w+):\s*(.+)$") {
+        $task = @{}
         $task["env"] = $currentEnv
-        $task["taskName"] = $matches[1]
+        $task[$matches[1]] = $matches[2]
         continue
     }
 
     # Parse other task properties
-    if ($trimmed -match "^(\w+):\s*(.+)$") {
-        $key = $matches[1]
-        $value = $matches[2]
-        $task[$key] = $value
+    if ($trimmed -match "^(\w+):\s*(.+)$" -and $task) {
+        $task[$matches[1]] = $matches[2]
     }
 
-    # If we have all expected keys, add to list
-    if ($task.ContainsKey("taskName") -and $task.ContainsKey("datasetName") -and $task.ContainsKey("taskCmd") -and $task.ContainsKey("cronExpression")) {
+    # If next line is a new task or env, finalize current task
+    if ($task -and ($trimmed -match "^- (\w+):\s*(.+)$" -or $trimmed -match "^(\w+):$")) {
         $tasks += [PSCustomObject]$task
         $task = $null
+    }
+}
+
+# Add final task if still pending
+if ($task) {
+    $tasks += [PSCustomObject]$task
+}
+
+# Collect all unique keys for headers
+$headers = @()
+foreach ($t in $tasks) {
+    foreach ($key in $t.PSObject.Properties.Name) {
+        if (-not $headers.Contains($key)) {
+            $headers += $key
+        }
     }
 }
 
@@ -45,7 +65,6 @@ $workbook = $excel.Workbooks.Add()
 $sheet = $workbook.Sheets.Item(1)
 
 # Write headers
-$headers = @("env", "taskName", "datasetName", "taskCmd", "cronExpression")
 for ($i = 0; $i -lt $headers.Count; $i++) {
     $sheet.Cells.Item(1, $i + 1) = $headers[$i]
 }
@@ -54,13 +73,13 @@ for ($i = 0; $i -lt $headers.Count; $i++) {
 $row = 2
 foreach ($task in $tasks) {
     for ($col = 0; $col -lt $headers.Count; $col++) {
-        $sheet.Cells.Item($row, $col + 1) = $task.$($headers[$col])
+        $key = $headers[$col]
+        $sheet.Cells.Item($row, $col + 1) = $task.$key
     }
     $row++
 }
 
 # Save and close
-$outputPath = "C:\path\to\output.xlsx"
 $workbook.SaveAs($outputPath)
 $workbook.Close($false)
 $excel.Quit()
