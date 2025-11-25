@@ -1,5 +1,9 @@
-$excelPath = "C:\path\to\output.xlsx"
-$yamlPath = "C:\path\to\reconstructed.yml"
+# Get the directory of the running script
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
+
+# Use files relative to the script location
+$excelPath = Join-Path $scriptDir "output.xlsx"
+$yamlPath = Join-Path $scriptDir "reconstructed.yml"
 
 # Start Excel COM
 $excel = New-Object -ComObject Excel.Application
