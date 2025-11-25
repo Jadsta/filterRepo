@@ -10,6 +10,7 @@ $lines = Get-Content $yamlPath
 $tasks = @()
 $currentEnv = ""
 $task = $null
+$headers = @("env")  # Start with env as first column
 
 foreach ($line in $lines) {
     $trimmed = $line.Trim()
@@ -19,7 +20,6 @@ foreach ($line in $lines) {
 
     # Detect environment section
     if ($trimmed -match "^(\w+):$") {
-        # Save previous task if pending
         if ($task) {
             $tasks += [PSCustomObject]$task
             $task = $null
@@ -30,19 +30,30 @@ foreach ($line in $lines) {
 
     # Detect start of a new task
     if ($trimmed -match "^- (\w+):\s*(.+)$") {
-        # Save previous task if pending
         if ($task) {
             $tasks += [PSCustomObject]$task
         }
         $task = @{}
         $task["env"] = $currentEnv
-        $task[$matches[1]] = $matches[2]
+        $key = $matches[1]
+        $value = $matches[2]
+        $task[$key] = $value
+
+        if (-not $headers.Contains($key)) {
+            $headers += $key
+        }
         continue
     }
 
     # Parse other task properties
     if ($trimmed -match "^(\w+):\s*(.+)$" -and $task) {
-        $task[$matches[1]] = $matches[2]
+        $key = $matches[1]
+        $value = $matches[2]
+        $task[$key] = $value
+
+        if (-not $headers.Contains($key)) {
+            $headers += $key
+        }
     }
 }
 
@@ -51,23 +62,13 @@ if ($task) {
     $tasks += [PSCustomObject]$task
 }
 
-# Collect all unique keys for headers
-$headers = @("env")
-foreach ($t in $tasks) {
-    foreach ($key in $t.PSObject.Properties.Name) {
-        if ($key -ne "env" -and -not $headers.Contains($key)) {
-            $headers += $key
-        }
-    }
-}
-
 # Create Excel file
 $excel = New-Object -ComObject Excel.Application
 $excel.Visible = $false
 $workbook = $excel.Workbooks.Add()
 $sheet = $workbook.Sheets.Item(1)
 
-# Write headers
+# Write headers in YAML order
 for ($i = 0; $i -lt $headers.Count; $i++) {
     $sheet.Cells.Item(1, $i + 1) = $headers[$i]
 }
