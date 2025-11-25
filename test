@@ -1,0 +1,66 @@
+$yamlPath = "C:\path\to\your\file.yml"
+$lines = Get-Content $yamlPath
+
+$tasks = @()
+$currentEnv = ""
+
+foreach ($line in $lines) {
+    $trimmed = $line.Trim()
+
+    # Skip comments and empty lines
+    if ($trimmed -eq "" -or $trimmed.StartsWith("#")) { continue }
+
+    # Detect environment section
+    if ($trimmed -match "^(\w+):$") {
+        $currentEnv = $matches[1]
+        continue
+    }
+
+    # Detect start of a new task
+    if ($trimmed -match "^- taskName:\s*(.+)$") {
+        $task = [ordered]@{}
+        $task["env"] = $currentEnv
+        $task["taskName"] = $matches[1]
+        continue
+    }
+
+    # Parse other task properties
+    if ($trimmed -match "^(\w+):\s*(.+)$") {
+        $key = $matches[1]
+        $value = $matches[2]
+        $task[$key] = $value
+    }
+
+    # If we have all expected keys, add to list
+    if ($task.ContainsKey("taskName") -and $task.ContainsKey("datasetName") -and $task.ContainsKey("taskCmd") -and $task.ContainsKey("cronExpression")) {
+        $tasks += [PSCustomObject]$task
+        $task = $null
+    }
+}
+
+# Create Excel file
+$excel = New-Object -ComObject Excel.Application
+$excel.Visible = $false
+$workbook = $excel.Workbooks.Add()
+$sheet = $workbook.Sheets.Item(1)
+
+# Write headers
+$headers = @("env", "taskName", "datasetName", "taskCmd", "cronExpression")
+for ($i = 0; $i -lt $headers.Count; $i++) {
+    $sheet.Cells.Item(1, $i + 1) = $headers[$i]
+}
+
+# Write data
+$row = 2
+foreach ($task in $tasks) {
+    for ($col = 0; $col -lt $headers.Count; $col++) {
+        $sheet.Cells.Item($row, $col + 1) = $task.$($headers[$col])
+    }
+    $row++
+}
+
+# Save and close
+$outputPath = "C:\path\to\output.xlsx"
+$workbook.SaveAs($outputPath)
+$workbook.Close($false)
+$excel.Quit()
