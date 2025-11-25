@@ -10,7 +10,7 @@ $range = $sheet.UsedRange
 $rowCount = $range.Rows.Count
 $colCount = $range.Columns.Count
 
-# Read headers
+# Read headers dynamically
 $headers = @()
 for ($col = 1; $col -le $colCount; $col++) {
     $headers += $range.Cells.Item(1, $col).Text
@@ -19,7 +19,7 @@ for ($col = 1; $col -le $colCount; $col++) {
 # Read data row by row
 $data = @()
 $envOrder = @()
-foreach ($row in 2..$rowCount) {
+for ($row = 2; $row -le $rowCount; $row++) {
     $entry = @{}
     for ($col = 1; $col -le $colCount; $col++) {
         $key = $headers[$col - 1]
@@ -39,16 +39,19 @@ foreach ($row in 2..$rowCount) {
 $workbook.Close($false)
 $excel.Quit()
 
-# Build YAML preserving env order
+# Build YAML dynamically
 $yamlLines = @()
 foreach ($env in $envOrder) {
     $yamlLines += "$env:"
     $tasks = $data | Where-Object { $_["env"] -eq $env }
-    foreach ($item in $tasks) {
-        $yamlLines += "  - taskName: $($item["taskName"])"
-        $yamlLines += "    datasetName: $($item["datasetName"])"
-        $yamlLines += "    taskCmd: $($item["taskCmd"])"
-        $yamlLines += "    cronExpression: $($item["cronExpression"])"
+
+    foreach ($task in $tasks) {
+        $yamlLines += "  -"
+        foreach ($key in $headers) {
+            if ($key -ne "env") {
+                $yamlLines += "    $key: $($task[$key])"
+            }
+        }
     }
 }
 
