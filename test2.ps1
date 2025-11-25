@@ -14,7 +14,7 @@ $range = $sheet.UsedRange
 $rowCount = $range.Rows.Count
 $colCount = $range.Columns.Count
 
-# Read headers dynamically
+# Read headers dynamically in Excel column order
 $headers = @()
 for ($col = 1; $col -le $colCount; $col++) {
     $headers += $range.Cells.Item(1, $col).Text
@@ -43,7 +43,7 @@ for ($row = 2; $row -le $rowCount; $row++) {
 $workbook.Close($false)
 $excel.Quit()
 
-# Build YAML dynamically
+# Build YAML dynamically, preserving column order
 $yamlLines = @()
 foreach ($env in $envOrder) {
     $yamlLines += $env + ":"
