@@ -46,14 +46,19 @@ $excel.Quit()
 # Build YAML dynamically
 $yamlLines = @()
 foreach ($env in $envOrder) {
-    $yamlLines += "$env:"
+    $yamlLines += $env + ":"
     $tasks = $data | Where-Object { $_["env"] -eq $env }
 
     foreach ($task in $tasks) {
-        $yamlLines += "  -"
+        $first = $true
         foreach ($key in $headers) {
             if ($key -ne "env") {
-                $yamlLines += "    $key: $($task[$key])"
+                if ($first) {
+                    $yamlLines += "  - " + $key + ": " + $task[$key]
+                    $first = $false
+                } else {
+                    $yamlLines += "    " + $key + ": " + $task[$key]
+                }
             }
         }
     }
